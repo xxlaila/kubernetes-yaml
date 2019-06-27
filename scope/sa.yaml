@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weave-scope
+  labels:
+    name: weave-scope
+  namespace: weave

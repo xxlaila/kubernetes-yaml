@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: <BUILD_TAG>
+  labels:
+    app: <BUILD_TAG>
+  namespace: 
+spec:
+  #type: NodePort
+  ports:
+  - port: 8000
+    name: <BUILD_TAG>
+   # nodePort: 31000
+  selector:
+    app: <BUILD_TAG>
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: <BUILD_TAG>
+  namespace:
+  labels:
+    app: <BUILD_TAG>
+spec:
+  revisionHistoryLimit: 3
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: <BUILD_TAG>
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: <BUILD_TAG>
+        image: docker.io/xxlaila/<BUILD_TAG>:<BUILD_TAG>
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+          - name: RUN_ENV
+            valueFrom:
+              configMapKeyRef:
+                name: dev-config
+                key: run.env
+          - name: CONFIG_API_SERVER
+            valueFrom:
+              configMapKeyRef:
+                name: dev-config
+                key: config.api.server
+          - name: RUN_CLUSTER
+            valueFrom:
+              configMapKeyRef:
+                name: dev-config
+                key: run.cluster
+          - name: RUN_MODE
+            valueFrom:
+              configMapKeyRef:
+                name: dev-config
+                key: run.mode
+        resources:
+          limits:
+            #cpu: 200m
+            memory: 512Mi
+          requests:
+            #cpu: 100m
+            memory: 256Mi
+      volumes:
+        - name: config-volume
+          configMap:
+            name: dev-config
+#    restartPolicy: Never

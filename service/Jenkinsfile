@@ -1,0 +1,63 @@
+node('agent-jnlp') {
+    stage('Clone') {
+        echo "1.Clone code"
+        checkout scm
+        script {
+            build_tag = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+            if (env.BRANCH_NAME != 'master') {
+                build_tag = "${env.BRANCH_NAME}-${build_tag}"
+            }
+        }
+    }
+    stage('Build') {
+        echo "2.Start build ${JOB_NAME}"
+        sh '/opt/bin/mvn clean package'
+    }
+    stage('Show') {
+        echo "3.Show package"
+        sh 'ls -ltrh target/'
+    }
+    stage('package') {
+        echo "4.Build Docker Images ${JOB_NAME}-${build_tag}"
+        JOB_NAME = JOB_NAME.substring(0, JOB_NAME.indexOf("/"));
+        sh "sed -i 's/<BUILD_NAME>/${JOB_NAME}/g' Dockerfile"
+        sh "docker build -t xxlaila/${JOB_NAME}:${build_tag} ."
+    }
+    stage('Push') {
+        echo "5.Push Docker Image Stage"
+        withCredentials([usernamePassword(credentialsId: 'dockerHub', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+            sh "docker login -u ${dockerHubUser} -p ${dockerHubPassword}"
+            sh "docker push xxlaila/${JOB_NAME}:${build_tag}"
+        }
+    }
+    stage('Deploy') {
+        echo "6.Deploy ${JOB_NAME}:${build_tag}"
+        def userInput = input(
+            id: 'userInput',
+            message: '.Choose a deploy environment',
+            parameters: [
+                [
+                    $class: 'ChoiceParameterDefinition',
+                    choices: "k8s\ntest\ndemo\nqa\nuat\nprod",
+                    name: 'ENV'
+                    ]
+                ]
+            )
+            sh "sed -i 's/<BUILD_TAG>/${build_tag}/' k8s.yaml"
+            sh "sed -i 's/<BUILD_NAME>/${JOB_NAME}/g' k8s.yaml"
+            if (userInput == "k8s") {
+                sh "sed -i 's/k8s/${userInput}/' k8s.yaml"
+            } else if (userInput == "test") {
+                sh "sed -i 's/k8s/${userInput}/' k8s.yaml"
+            } else if (userInput == "demo") {
+                sh "sed -i 's/k8s/${userInput}/' k8s.yaml"
+            } else if (userInput == "qa") {
+                sh "sed -i 's/k8s/${userInput}/' k8s.yaml"
+            } else if (userInput == "uat") {
+                sh "sed -i 's/k8s/${userInput}/' k8s.yaml"
+            } else {
+                sh "sed -i 's/k8s/${userInput}/' k8s.yaml"
+            }
+            sh "kubectl apply -f k8s.yaml --record -n kube-dev"
+    }
+}

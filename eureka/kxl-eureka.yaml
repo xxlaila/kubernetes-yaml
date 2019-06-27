@@ -1,0 +1,69 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka
+  namespace: kube-dev
+  labels:
+    app: eureka
+spec:
+  ports:
+  - port: 8761
+    name: eureka
+  clusterIP: None
+  selector:
+    app: eureka
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: eureka
+  namespace: kube-dev
+spec:
+  serviceName: "eureka"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: eureka
+  template:
+    metadata:
+      labels:
+        app: eureka
+    spec:
+      containers:
+      - name: eureka
+        image:  docker.io/xxlaila/kxl-eureka:v2
+        ports:
+        - containerPort: 8761
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+          # Due to camelcase issues with "defaultZone" and "preferIpAddress", _JAVA_OPTIONS is used here
+        - name: eureka_client_serviceUrl_defaultZone
+          #value: http://eureka-0.eureka.<namespace>.svc.cluster.local:8761/eureka/,http://eureka-1.eureka.<namespace>.svc.cluster.local:8761/eureka/
+          value: http://eureka-0.eureka:8761/eureka/,http://eureka-1.eureka:8761/eureka/,http://eureka-2.eureka:8761/eureka/
+        - name: EUREKA_CLIENT_REGISTERWITHEUREKA
+          value: "true"
+        - name: EUREKA_CLIENT_FETCHREGISTRY
+          value: "true"
+          # In the docker image, this is set to localhost. Otherwise, we could leave this empty.
+          # The hostnames must match with the the eureka serviceUrls, otherwise the replicas are reported as unavailable in the eureka dashboard
+        - name: EUREKA_INSTANCE_HOSTNAME
+          #value: "$(MY_POD_NAME).eureka.<namespace.svc.cluster.local"
+          value: "$(MY_POD_NAME).eureka"
+        - name: RUN_ENV
+          value: test
+        - name: CONFIG_API_SERVER
+          value: http://api.conf.test.com
+        - name: RUN_CLUSTER
+          value: default
+        - name: RUN_MODE
+          value: AUTO
+          #value: eureka
+          # For the other (stateless) services, this should probably be set to true, since their pods have no DNS-resolvable  hostnames
+       #- name: EUREKA_INSTANCE_PREFERIPADDRESS
+       #  value: "false"
+  # No need to start the pods in order. We just need the stable network identity
+  podManagementPolicy: "Parallel"

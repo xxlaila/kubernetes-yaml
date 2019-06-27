@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: kxl-eureka
+server:
+  port: 8761
+eureka:
+  environment: ${RUN_ENV}
+  instance:
+#    prefer-ip-address: true
+    hostname: ${EUREKA_HOST_NAME:peer1}
+    appname: ${spring.application.name}
+    # server 从最后一次收到心跳到移除废弃服务的超时时间（秒）
+    lease-expiration-duration-in-seconds: 90
+    # client 给 server 发送心跳的间隔时间（秒），比 lease-expiration-duration-in-seconds 小
+    lease-renewal-interval-in-seconds: 30
+
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URL_LIST:http://peer1:8761/eureka/}
+    # client 是否从eureka上拉取注册信息， server模式可关掉
+    fetch-registry: ${BOOL_FETCH:true}
+    # client 是否注册到eureka上， server模式可关掉
+    register-with-eureka: ${BOOL_REGISTER:true}
+    # client 间隔多久去拉去服务信息(秒)
+    registry-fetch-interval-seconds: 30
+  server:
+    # 自我保护机制，应对网络闪断情况，大面积丢失过多的client，不删除服务
+    enable-self-preservation: ${SELF_PRESERVATION:true}
+    # 每分钟心跳数 实际/期望，如果小于阈值(threshold)，则触发自我保护机制
+    renewal-percent-threshold: 0.85
+    # 扫描失效服务的间隔时间（毫秒）
+    eviction-interval-timer-in-ms: 60000
+
+  application:
+    name: ${EUREKA_APPLICATION_NAME:eureka-server}

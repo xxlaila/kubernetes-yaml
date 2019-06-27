@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-config
+  namespace: kube-dev
+data:
+  run.env: k8s
+  config.api.server: http://api.conf.xxx.com
+  run.cluster: default
+  run.mode: AUTO

@@ -1,0 +1,3 @@
+#!/bin/bash
+# This script user gets the token, gives the executable permission, and the script is stored in /usr/bin
+kubectl -n kube-system describe secret $(kubectl -n kube-system get secret| grep dashboard-token|awk '{print $1}'|head -1)

@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: jenkins-ingress
+  namespace: kube-ops
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+spec:
+  tls:
+  - hosts:
+    - ci.zxc.com
+    secretName: ingress-secret
+  rules:
+  - host: ci.zxc.com
+    http:
+      paths:
+      - backend:
+          serviceName: jenkins2
+          servicePort: 8080
