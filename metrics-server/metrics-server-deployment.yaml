@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metrics-server
+  namespace: kube-system
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: metrics-server
+  namespace: kube-system
+  labels:
+    k8s-app: metrics-server
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+  template:
+    metadata:
+      name: metrics-server
+      labels:
+        k8s-app: metrics-server
+    spec:
+      serviceAccountName: metrics-server
+      hostNetwork: true
+      volumes:
+      # mount in tmp so we can safely use from-scratch images and/or read-only containers
+      - name: tmp-dir
+        emptyDir: {}
+      containers:
+      - name: metrics-server
+        image: mirrorgooglecontainers/metrics-server-amd64:v0.3.3
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/ssl/kubernetes/
+          name: ca-ssl
+        command:
+        - /metrics-server
+        - --kubelet-preferred-address-types=InternalIP,Hostname,InternalDNS,ExternalDNS,ExternalIP
+        - --requestheader-client-ca-file=/etc/ssl/kubernetes/front-proxy-ca.pem
+        - --kubelet-insecure-tls=true
+      volumes:
+       - name: ca-ssl
+         hostPath:
+          path: /etc/kubernetes/ssl
